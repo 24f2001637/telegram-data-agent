@@ -1,5 +1,7 @@
 import os
+import threading
 from dotenv import load_dotenv
+from flask import Flask, send_file
 
 from telegram import Update
 from telegram.ext import (
@@ -13,11 +15,24 @@ from ai import ask_ai
 from logger import write_log
 from data_agent import find_url, load_dataset
 
-# Load environment variables
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+PORT = int(os.environ.get("PORT", 10000))
 
+# ---------------- Flask Server ----------------
+
+server = Flask(__name__)
+
+@server.route("/")
+def home():
+    return "Telegram Data Agent is running!"
+
+@server.route("/logs/run.jsonl")
+def logs():
+    return send_file("logs/run.jsonl", mimetype="application/json")
+
+# ---------------- Telegram Bot ----------------
 
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -42,10 +57,22 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(answer)
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, reply))
+def run_bot():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-print("Bot is running...")
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, reply)
+    )
 
-app.run_polling()
+    print("Bot is running...")
+    app.run_polling()
+
+# ---------------- Main ----------------
+
+if __name__ == "__main__":
+
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.start()
+
+    server.run(host="0.0.0.0", port=PORT)
