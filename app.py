@@ -1,5 +1,6 @@
 import os
 import threading
+import asyncio
 from dotenv import load_dotenv
 from flask import Flask, send_file
 
@@ -59,6 +60,8 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def run_bot():
+    asyncio.set_event_loop(asyncio.new_event_loop())
+
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(
@@ -67,12 +70,11 @@ def run_bot():
 
     print("Bot is running...")
     app.run_polling()
-
 # ---------------- Main ----------------
 
 if __name__ == "__main__":
 
-    bot_thread = threading.Thread(target=run_bot)
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
     bot_thread.start()
 
     server.run(host="0.0.0.0", port=PORT)
