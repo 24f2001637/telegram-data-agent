@@ -1,43 +1,19 @@
 import json
 import os
-
-from datetime import datetime, timezone
-
+from datetime import datetime
 
 LOG_FILE = "logs/run.jsonl"
 
+os.makedirs("logs", exist_ok=True)
 
-os.makedirs(
-    "logs",
-    exist_ok=True
-)
+def write_log(role, content):
 
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
 
-def write_log(
-    role,
-    content
-):
+        obj = {
+            "time": datetime.now().isoformat(),
+            "role": role,
+            "content": content
+        }
 
-    obj = {
-        "time": datetime.now(
-            timezone.utc
-        ).isoformat(),
-
-        "role": role,
-
-        "content": content
-    }
-
-    with open(
-        LOG_FILE,
-        "a",
-        encoding="utf-8"
-    ) as f:
-
-        f.write(
-            json.dumps(
-                obj,
-                ensure_ascii=False
-            )
-            + "\n"
-        )
+        f.write(json.dumps(obj) + "\n")
