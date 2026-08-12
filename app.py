@@ -1,4 +1,5 @@
 import os
+import json
 import threading
 import asyncio
 from dotenv import load_dotenv
@@ -20,6 +21,7 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 PORT = int(os.environ.get("PORT", 10000))
+BASE_URL = (os.getenv("BASE_URL") or os.getenv("RENDER_EXTERNAL_URL") or f"http://localhost:{PORT}").rstrip("/")
 
 # ---------------- Flask Server ----------------
 
@@ -30,8 +32,14 @@ def home():
     return "Telegram Data Agent is running!"
 
 @server.route("/logs/run.jsonl")
+@server.route("/run.jsonl")
 def logs():
-    return send_file("logs/run.jsonl", mimetype="application/json")
+    log_path = "logs/run.jsonl"
+    if not os.path.exists(log_path):
+        os.makedirs("logs", exist_ok=True)
+        with open(log_path, "w", encoding="utf-8") as f:
+            pass
+    return send_file(log_path, mimetype="text/plain")
 
 # ---------------- Telegram Bot ----------------
 
@@ -41,18 +49,23 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     write_log("user", question)
 
+    log_url = f"{BASE_URL}/logs/run.jsonl"
+
     try:
         url = find_url(question)
 
         if url:
             df = load_dataset(url)
-            answer = ask_ai(question, df)
+            answer = ask_ai(question, df, log_url=log_url)
         else:
-            answer = ask_ai(question)
+            answer = ask_ai(question, log_url=log_url)
 
     except Exception as e:
         write_log("error", str(e))
-        answer = ask_ai(question)
+        answer = json.dumps({
+            "answer": f"Error processing query: {str(e)}",
+            "log_url": log_url
+        })
 
     write_log("assistant", answer)
 
@@ -78,4 +91,4 @@ if __name__ == "__main__":
     bot_thread = threading.Thread(target=run_bot, daemon=True)
     bot_thread.start()
 
-    server.run(host="0.0.0.0", port=PORT)
+    server.run(host="0.0.0.0", port=PORT)
