@@ -63,7 +63,7 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         write_log("error", str(e))
         answer = json.dumps({
-            "answer": f"Error processing query: {str(e)}",
+            "answer": "Error processing query. Please try again later.",
             "log_url": log_url
         })
 
@@ -91,4 +91,4 @@ if __name__ == "__main__":
     bot_thread = threading.Thread(target=run_bot, daemon=True)
     bot_thread.start()
 
-    server.run(host="0.0.0.0", port=PORT)
+    server.run(host="0.0.0.0", port=PORT)
